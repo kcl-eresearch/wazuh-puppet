@@ -7,6 +7,8 @@ class wazuh::manager (
       $server_package_version           = $wazuh::params_manager::server_package_version,
       $manage_firewall                  = $wazuh::params_manager::manage_firewall,
 
+      $template_only                    = $wazuh::params_manager::template_only,
+
       $server_service                   = $wazuh::params_manager::server_service,
       $servie_has_status                = $wazuh::params_manager::service_has_status,
       $ossec_service_provider           = $wazuh::params_manager::ossec_service_provider,
@@ -340,7 +342,7 @@ class wazuh::manager (
   }
 
 
-  if ( $ossec_syscheck_whodata_directories_1 == 'yes' ) or ( $ossec_syscheck_whodata_directories_2 == 'yes' ) {
+  if ( $ossec_syscheck_whodata_directories_1 == 'yes' ) or ( $ossec_syscheck_whodata_directories_2 == 'yes' ) and (!$template_only){
     case $::operatingsystem {
       'Debian', 'debian', 'Ubuntu', 'ubuntu': {
         package { 'Installing Auditd...':
@@ -377,9 +379,12 @@ class wazuh::manager (
 
   # Install and configure Wazuh-manager package
 
-  package { $wazuh::params_manager::server_package:
-    ensure  => $server_package_version, # lint:ignore:security_package_pinned_version
+  if !$template_only {
+    package { $wazuh::params_manager::server_package:
+      ensure  => $server_package_version, # lint:ignore:security_package_pinned_version
+    }
   }
+
 
 file {
   default:
@@ -608,14 +613,16 @@ file {
       content => "</ossec_config>\n";
   }
 
-  exec { 'Generate the wazuh-keystore (username)':
-    path    => ['/var/ossec/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'],
-    command => "wazuh-keystore -f indexer -k username -v ${vulnerability_indexer_username}",
-  }
+  if !$template_only {
+    exec { 'Generate the wazuh-keystore (username)':
+      path    => ['/var/ossec/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'],
+      command => "wazuh-keystore -f indexer -k username -v ${vulnerability_indexer_username}",
+    }
 
-  exec { 'Generate the wazuh-keystore (password)':
-    path    => ['/var/ossec/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'],
-    command => "wazuh-keystore -f indexer -k password -v ${vulnerability_indexer_password}",
+    exec { 'Generate the wazuh-keystore (password)':
+      path    => ['/var/ossec/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'],
+      command => "wazuh-keystore -f indexer -k password -v ${vulnerability_indexer_password}",
+    }
   }
 
   if ( $manage_client_keys == 'yes') {
@@ -655,7 +662,7 @@ file {
         group   => $keys_group,
         mode    => $keys_mode,
         require => Package[$wazuh::params_manager::server_package],
-        notify  => Service[$$server_service],
+        notify  => Service[$server_service],
       }
     }
   }
@@ -686,7 +693,7 @@ file {
     }
   }
 
-  if ( $ossec_syscheck_whodata_directories_1 == 'yes' ) or ( $ossec_syscheck_whodata_directories_2 == 'yes' ) {
+  if ( $ossec_syscheck_whodata_directories_1 == 'yes' ) or ( $ossec_syscheck_whodata_directories_2 == 'yes' ) and (!$template_only) {
     exec { 'Ensure wazuh-fim rule is added to auditctl':
       command => '/sbin/auditctl -l',
       unless  => '/sbin/auditctl -l | grep wazuh_fim',
