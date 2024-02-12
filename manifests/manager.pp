@@ -8,6 +8,19 @@ class wazuh::manager (
       $manage_repos                     = $::wazuh::params_manager::manage_repos,
       $manage_firewall                  = $wazuh::params_manager::manage_firewall,
 
+      $server_service                   = $wazuh::params_manager::server_service,
+      $servie_has_status                = $wazuh::params_manager::service_has_status,
+      $ossec_service_provider           = $wazuh::params_manager::ossec_service_provider,
+
+      # Configuration permissions
+      $config_owner                     = $wazuh::params_manager::config_owner,
+      $config_group                     = $wazuh::params_manager::config_group,
+      $config_mode                      = $wazuh::params_manager::config_mode,
+
+      # Secret permissions
+      $keys_owner                       = $wazuh::params_manager::keys_owner,
+      $keys_group                       = $wazuh::params_manager::keys_group,
+      $keys_mode                        = $wazuh::params_manager::keys_mode,
 
     ### Ossec.conf blocks
 
@@ -413,13 +426,13 @@ class wazuh::manager (
     ensure  => $server_package_version, # lint:ignore:security_package_pinned_version
   }
 
-  file {
-    default:
-      owner   => $wazuh::params_manager::config_owner,
-      group   => $wazuh::params_manager::config_group,
-      mode    => $wazuh::params_manager::config_mode,
-      notify  => Service[$wazuh::params_manager::server_service],
-      require => Package[$wazuh::params_manager::server_package];
+file {
+  default:
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_mode,
+    notify  => Service[$server_service],
+    require => Package[$wazuh::params_manager::server_package];
     $wazuh::params_manager::shared_agent_config_file:
       validate_cmd => $wazuh::params_manager::validate_cmd_conf,
       content      => template($shared_agent_template);
@@ -431,13 +444,13 @@ class wazuh::manager (
       content      => template('wazuh/process_list.erb');
   }
 
-  service { $wazuh::params_manager::server_service:
-    ensure    => running,
-    enable    => true,
-    hasstatus => $wazuh::params_manager::service_has_status,
-    pattern   => $wazuh::params_manager::server_service,
-    provider  => $wazuh::params_manager::ossec_service_provider,
-    require   => Package[$wazuh::params_manager::server_package],
+  service { $server_service:
+      ensure    => running,
+      enable    => true,
+      hasstatus => $service_has_status,
+      pattern   => $server_service,
+      provider  => $ossec_service_provider,
+      require   => Package[$wazuh::params_manager::server_package],
   }
 
   ## Declaring variables for localfile and wodles generation
@@ -474,12 +487,12 @@ class wazuh::manager (
 
 
   concat { 'manager_ossec.conf':
-    path    => $wazuh::params_manager::config_file,
-    owner   => $wazuh::params_manager::config_owner,
-    group   => $wazuh::params_manager::config_group,
-    mode    => $wazuh::params_manager::config_mode,
+    path    => $config_file,
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_mode,
     require => Package[$wazuh::params_manager::server_package],
-    notify  => Service[$wazuh::params_manager::server_service],
+    notify  => Service[$server_service],
   }
   concat::fragment {
     'ossec.conf_header':
@@ -637,12 +650,12 @@ class wazuh::manager (
     # (see https://github.com/wazuh/wazuh/issues/80)
 
     file { $wazuh::params_manager::authd_pass_file:
-      owner   => $wazuh::params_manager::keys_owner,
-      group   => $wazuh::params_manager::keys_group,
-      mode    => $wazuh::params_manager::keys_mode,
+      owner   => $keys_owner,
+      group   => $keys_group,
+      mode    => $keys_mode,
       content => $agent_auth_password,
       require => Package[$wazuh::params_manager::server_package],
-      notify  => Service[$wazuh::params_manager::server_service],
+      notify  => Service[$server_service],
     }
   }
 
@@ -656,20 +669,20 @@ class wazuh::manager (
 
       file { '/var/ossec/etc/sslmanager.key':
         content => $wazuh_manager_server_key,
-        owner   => 'root',
-        group   => 'wazuh',
-        mode    => '0640',
+        owner   => $keys_owner,
+        group   => $keys_group,
+        mode    => $keys_mode,
         require => Package[$wazuh::params_manager::server_package],
-        notify  => Service[$wazuh::params_manager::server_service],
+        notify  => Service[$server_service],
       }
 
       file { '/var/ossec/etc/sslmanager.cert':
         content => $wazuh_manager_server_crt,
-        owner   => 'root',
-        group   => 'wazuh',
-        mode    => '0640',
+        owner   => $keys_owner,
+        group   => $keys_group,
+        mode    => $keys_mode,
         require => Package[$wazuh::params_manager::server_package],
-        notify  => Service[$wazuh::params_manager::server_service],
+        notify  => Service[$$server_service],
       }
     }
   }
@@ -709,12 +722,11 @@ class wazuh::manager (
   }
 
   file { '/var/ossec/api/configuration/api.yaml':
-    owner   => 'root',
-    group   => 'wazuh',
-    mode    => '0640',
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_mode,
     content => template('wazuh/wazuh_api_yml.erb'),
     require => Package[$wazuh::params_manager::server_package],
-    notify  => Service[$wazuh::params_manager::server_service]
+    notify  => Service[$server_service]
   }
-
 }
