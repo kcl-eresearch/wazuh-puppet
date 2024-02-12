@@ -1,6 +1,9 @@
 # Copyright (C) 2015, Wazuh Inc.
 # Paramas file
-class wazuh::params_manager {
+class wazuh::params_manager (
+  # Prevents Package installs or securityconf script
+  $template_only = false
+) {
   case $::kernel {
     'Linux': {
 
@@ -418,182 +421,179 @@ class wazuh::params_manager {
 
       # Wazuh API template path
       $wazuh_api_template = 'wazuh/wazuh_api_yml.erb'
-
-
-      case $::osfamily {
-        'Debian': {
-
-          $agent_service  = 'wazuh-agent'
-          $agent_package  = 'wazuh-agent'
-          $service_has_status  = false
-          $ossec_service_provider = undef
-          $api_service_provider = undef
-          $default_local_files = [
-            { 'location' => '/var/log/syslog' , 'log_format' => 'syslog' },
-            { 'location' => '/var/log/dpkg.log', 'log_format' => 'syslog' },
-            { 'location' => '/var/log/kern.log', 'log_format' => 'syslog' },
-            { 'location' => '/var/log/auth.log', 'log_format' => 'syslog' },
-            {  'location' => '/var/ossec/logs/active-responses.log', 'log_format' => 'syslog'},
-          ]
-          case $::lsbdistcodename {
-            'xenial': {
-              $server_service = 'wazuh-manager'
-              $server_package = 'wazuh-manager'
-              $wodle_openscap_content = {
-                'ssg-ubuntu-1604-ds.xml' => {
-                  'type' => 'xccdf',
-                  profiles => ['xccdf_org.ssgproject.content_profile_common'],
-                },'cve-ubuntu-xenial-oval.xml' => {
-                  'type' => 'oval'
-                }
-              }
-            }
-            'jessie': {
-              $server_service = 'wazuh-manager'
-              $server_package = 'wazuh-manager'
-              $wodle_openscap_content = {
-                'ssg-debian-8-ds.xml' => {
-                  'type' => 'xccdf',
-                  profiles => ['xccdf_org.ssgproject.content_profile_common'],
-                },
-                'cve-debian-8-oval.xml' => {
-                  'type' => 'oval',
-                }
-              }
-            }
-            /^(wheezy|stretch|buster|bullseye|bookworm|sid|precise|trusty|vivid|wily|xenial|bionic|focal|groovy|jammy)$/: {
-              $server_service = 'wazuh-manager'
-              $server_package = 'wazuh-manager'
-              $wodle_openscap_content = undef
-            }
-        default: {
-          fail("Module ${module_name} is not supported on ${::operatingsystem}")
-        }
-          }
-
-        }
-        'RedHat': {
-
-          $agent_service  = 'wazuh-agent'
-          $agent_package  = 'wazuh-agent'
-          $server_service = 'wazuh-manager'
-          $server_package = 'wazuh-manager'
-          $service_has_status  = true
-
-          $default_local_files =[
-              {  'location' => '/var/log/audit/audit.log' , 'log_format' => 'audit'},
-              {  'location' => '/var/ossec/logs/active-responses.log' , 'log_format' => 'syslog'},
-              {  'location' => '/var/log/messages', 'log_format' => 'syslog'},
-              {  'location' => '/var/log/secure' , 'log_format' => 'syslog'},
-              {  'location' => '/var/log/maillog' , 'log_format' => 'syslog'},
-          ]
-          case $::operatingsystem {
-            'Amazon': {
-              $ossec_service_provider = 'systemd'
-              $api_service_provider = 'systemd'
-              # Amazon is based on Centos-6 with some improvements
-              # taken from RHEL-7 but uses SysV-Init, not Systemd.
-              # Probably best to leave this undef until we can
-              # write/find a release-specific file.
-              $wodle_openscap_content = undef
-            }
-            'CentOS': {
-              if ( $::operatingsystemrelease =~ /^6.*/ ) {
-                $ossec_service_provider = 'redhat'
-                $api_service_provider = 'redhat'
+      if !$template_only {
+        case $::osfamily {
+          'Debian': {
+            $agent_service  = 'wazuh-agent'
+            $agent_package  = 'wazuh-agent'
+            $service_has_status  = false
+            $ossec_service_provider = undef
+            $api_service_provider = undef
+            $default_local_files = [
+              { 'location' => '/var/log/syslog' , 'log_format' => 'syslog' },
+              { 'location' => '/var/log/dpkg.log', 'log_format' => 'syslog' },
+              { 'location' => '/var/log/kern.log', 'log_format' => 'syslog' },
+              { 'location' => '/var/log/auth.log', 'log_format' => 'syslog' },
+              {  'location' => '/var/ossec/logs/active-responses.log', 'log_format' => 'syslog'},
+            ]
+            case $::lsbdistcodename {
+              'xenial': {
+                $server_service = 'wazuh-manager'
+                $server_package = 'wazuh-manager'
                 $wodle_openscap_content = {
-                  'ssg-centos-6-ds.xml' => {
+                  'ssg-ubuntu-1604-ds.xml' => {
                     'type' => 'xccdf',
-                    profiles => ['xccdf_org.ssgproject.content_profile_pci-dss', 'xccdf_org.ssgproject.content_profile_server',]
+                    profiles => ['xccdf_org.ssgproject.content_profile_common'],
+                  },'cve-ubuntu-xenial-oval.xml' => {
+                    'type' => 'oval'
                   }
                 }
               }
-              if ( $::operatingsystemrelease =~ /^7.*/ ) {
+              'jessie': {
+                $server_service = 'wazuh-manager'
+                $server_package = 'wazuh-manager'
+                $wodle_openscap_content = {
+                  'ssg-debian-8-ds.xml' => {
+                    'type' => 'xccdf',
+                    profiles => ['xccdf_org.ssgproject.content_profile_common'],
+                  },
+                  'cve-debian-8-oval.xml' => {
+                    'type' => 'oval',
+                  }
+                }
+              }
+              /^(wheezy|stretch|buster|bullseye|bookworm|sid|precise|trusty|vivid|wily|xenial|bionic|focal|groovy|jammy)$/: {
+                $server_service = 'wazuh-manager'
+                $server_package = 'wazuh-manager'
+                $wodle_openscap_content = undef
+              }
+            default: {
+              fail("Module ${module_name} is not supported on ${::operatingsystem}")
+              }
+            }
+          }
+          'RedHat': {
+
+            $agent_service  = 'wazuh-agent'
+            $agent_package  = 'wazuh-agent'
+            $server_service = 'wazuh-manager'
+            $server_package = 'wazuh-manager'
+            $service_has_status  = true
+
+            $default_local_files =[
+                {  'location' => '/var/log/audit/audit.log' , 'log_format' => 'audit'},
+                {  'location' => '/var/ossec/logs/active-responses.log' , 'log_format' => 'syslog'},
+                {  'location' => '/var/log/messages', 'log_format' => 'syslog'},
+                {  'location' => '/var/log/secure' , 'log_format' => 'syslog'},
+                {  'location' => '/var/log/maillog' , 'log_format' => 'syslog'},
+            ]
+            case $::operatingsystem {
+              'Amazon': {
                 $ossec_service_provider = 'systemd'
                 $api_service_provider = 'systemd'
-                $wodle_openscap_content = {
-                  'ssg-centos-7-ds.xml' => {
-                    'type' => 'xccdf',
-                    profiles => ['xccdf_org.ssgproject.content_profile_pci-dss', 'xccdf_org.ssgproject.content_profile_common',]
+                # Amazon is based on Centos-6 with some improvements
+                # taken from RHEL-7 but uses SysV-Init, not Systemd.
+                # Probably best to leave this undef until we can
+                # write/find a release-specific file.
+                $wodle_openscap_content = undef
+              }
+              'CentOS': {
+                if ( $::operatingsystemrelease =~ /^6.*/ ) {
+                  $ossec_service_provider = 'redhat'
+                  $api_service_provider = 'redhat'
+                  $wodle_openscap_content = {
+                    'ssg-centos-6-ds.xml' => {
+                      'type' => 'xccdf',
+                      profiles => ['xccdf_org.ssgproject.content_profile_pci-dss', 'xccdf_org.ssgproject.content_profile_server',]
+                    }
+                  }
+                }
+                if ( $::operatingsystemrelease =~ /^7.*/ ) {
+                  $ossec_service_provider = 'systemd'
+                  $api_service_provider = 'systemd'
+                  $wodle_openscap_content = {
+                    'ssg-centos-7-ds.xml' => {
+                      'type' => 'xccdf',
+                      profiles => ['xccdf_org.ssgproject.content_profile_pci-dss', 'xccdf_org.ssgproject.content_profile_common',]
+                    }
                   }
                 }
               }
-            }
-            /^(RedHat|OracleLinux)$/: {
-              if ( $::operatingsystemrelease =~ /^6.*/ ) {
-                $ossec_service_provider = 'redhat'
-                $api_service_provider = 'redhat'
-                $wodle_openscap_content = {
-                  'ssg-rhel-6-ds.xml' => {
-                    'type' => 'xccdf',
-                    profiles => ['xccdf_org.ssgproject.content_profile_pci-dss', 'xccdf_org.ssgproject.content_profile_server',]
-                  },
-                  'cve-redhat-6-ds.xml' => {
-                    'type' => 'xccdf',
+              /^(RedHat|OracleLinux)$/: {
+                if ( $::operatingsystemrelease =~ /^6.*/ ) {
+                  $ossec_service_provider = 'redhat'
+                  $api_service_provider = 'redhat'
+                  $wodle_openscap_content = {
+                    'ssg-rhel-6-ds.xml' => {
+                      'type' => 'xccdf',
+                      profiles => ['xccdf_org.ssgproject.content_profile_pci-dss', 'xccdf_org.ssgproject.content_profile_server',]
+                    },
+                    'cve-redhat-6-ds.xml' => {
+                      'type' => 'xccdf',
+                    }
+                  }
+                }
+                if ( $::operatingsystemrelease =~ /^7.*/ ) {
+                  $ossec_service_provider = 'systemd'
+                  $api_service_provider = 'systemd'
+                  $wodle_openscap_content = {
+                    'ssg-rhel-7-ds.xml' => {
+                      'type' => 'xccdf',
+                      profiles => ['xccdf_org.ssgproject.content_profile_pci-dss', 'xccdf_org.ssgproject.content_profile_common',]
+                    },
+                    'cve-redhat-7-ds.xml' => {
+                      'type' => 'xccdf',
+                    }
                   }
                 }
               }
-              if ( $::operatingsystemrelease =~ /^7.*/ ) {
-                $ossec_service_provider = 'systemd'
-                $api_service_provider = 'systemd'
-                $wodle_openscap_content = {
-                  'ssg-rhel-7-ds.xml' => {
-                    'type' => 'xccdf',
-                    profiles => ['xccdf_org.ssgproject.content_profile_pci-dss', 'xccdf_org.ssgproject.content_profile_common',]
-                  },
-                  'cve-redhat-7-ds.xml' => {
-                    'type' => 'xccdf',
+              'Fedora': {
+                if ( $::operatingsystemrelease =~ /^(23|24|25).*/ ) {
+                  $ossec_service_provider = 'redhat'
+                  $api_service_provider = 'redhat'
+                  $wodle_openscap_content = {
+                    'ssg-fedora-ds.xml' => {
+                      'type' => 'xccdf',
+                      profiles => ['xccdf_org.ssgproject.content_profile_standard', 'xccdf_org.ssgproject.content_profile_common',]
+                    },
                   }
                 }
               }
-            }
-            'Fedora': {
-              if ( $::operatingsystemrelease =~ /^(23|24|25).*/ ) {
-                $ossec_service_provider = 'redhat'
-                $api_service_provider = 'redhat'
-                $wodle_openscap_content = {
-                  'ssg-fedora-ds.xml' => {
-                    'type' => 'xccdf',
-                    profiles => ['xccdf_org.ssgproject.content_profile_standard', 'xccdf_org.ssgproject.content_profile_common',]
-                  },
+              'AlmaLinux': {
+                if ( $::operatingsystemrelease =~ /^8.*/ ) {
+                  $ossec_service_provider = 'redhat'
+                  $api_service_provider = 'redhat'
                 }
               }
+              default: { fail('This ossec module has not been tested on your distribution') }
             }
-            'AlmaLinux': {
-              if ( $::operatingsystemrelease =~ /^8.*/ ) {
-                $ossec_service_provider = 'redhat'
-                $api_service_provider = 'redhat'
-              }
-            }
-            default: { fail('This ossec module has not been tested on your distribution') }
           }
-        }
-        'Suse': {
+          'Suse': {
+            $agent_service  = 'wazuh-agent'
+            $agent_package  = 'wazuh-agent'
+            $server_service = 'wazuh-manager'
+            $server_package = 'wazuh-manager'
+            $service_has_status  = true
 
-          $agent_service  = 'wazuh-agent'
-          $agent_package  = 'wazuh-agent'
-          $server_service = 'wazuh-manager'
-          $server_package = 'wazuh-manager'
-          $service_has_status  = true
-
-          $default_local_files =[
-              {  'location' => '/var/log/audit/audit.log' , 'log_format' => 'audit'},
-              {  'location' => '/var/ossec/logs/active-responses.log' , 'log_format' => 'syslog'},
-              {  'location' => '/var/log/messages', 'log_format' => 'syslog'},
-              {  'location' => '/var/log/secure' , 'log_format' => 'syslog'},
-              {  'location' => '/var/log/maillog' , 'log_format' => 'syslog'},
-          ]
-          case $::operatingsystem {
-            'SLES': {
-              if ( $::operatingsystemrelease =~ /^(12|15).*/ ) {
-                $ossec_service_provider = 'redhat'
-                $api_service_provider = 'redhat'
+            $default_local_files =[
+                {  'location' => '/var/log/audit/audit.log' , 'log_format' => 'audit'},
+                {  'location' => '/var/ossec/logs/active-responses.log' , 'log_format' => 'syslog'},
+                {  'location' => '/var/log/messages', 'log_format' => 'syslog'},
+                {  'location' => '/var/log/secure' , 'log_format' => 'syslog'},
+                {  'location' => '/var/log/maillog' , 'log_format' => 'syslog'},
+            ]
+            case $::operatingsystem {
+              'SLES': {
+                if ( $::operatingsystemrelease =~ /^(12|15).*/ ) {
+                  $ossec_service_provider = 'redhat'
+                  $api_service_provider = 'redhat'
+                }
               }
+              default: { fail('This ossec module has not been tested on your distribution') }
             }
-            default: { fail('This ossec module has not been tested on your distribution') }
           }
+            default: { fail('This ossec module has not been tested on your distribution') }
         }
-        default: { fail('This ossec module has not been tested on your distribution') }
       }
     }
     'windows': {
