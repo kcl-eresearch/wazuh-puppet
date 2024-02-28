@@ -75,23 +75,21 @@ class wazuh::dashboard (
     mode   => '0500',
   }
 
-  [
-    'dashboard.pem',
-    'dashboard-key.pem',
-    'root-ca.pem',
-  ].each |String $certfile| {
-    $source_option = $create_ssl_certs ? {
-      true    => { source => "/tmp/wazuh-certificates/${certfile}" },
-      default => {}, # If we dont manage the content of the file
-    }
 
-    file { "${dashboard_path_certs}/${certfile}":
-      ensure  => file,
-      owner   => $dashboard_fileuser,
-      group   => $dashboard_filegroup,
-      mode    => '0400',
-      replace => false,  # only copy content when file does not exist
-      *       => $source_option;  # Conditionally include source
+  if $create_ssl_certs {
+    [
+      'dashboard.pem',
+      'dashboard-key.pem',
+      'root-ca.pem',
+    ].each |String $certfile| {
+      file { "${dashboard_path_certs}/${certfile}":
+        ensure  => file,
+        owner   => $dashboard_fileuser,
+        group   => $dashboard_filegroup,
+        mode    => '0400',
+        replace => false,  # only copy content when file does not exist
+        source  => "/tmp/wazuh-certificates/${certfile}";
+      }
     }
   }
 

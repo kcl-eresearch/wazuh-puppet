@@ -12,6 +12,8 @@ class wazuh::indexer (
   $indexer_fileuser = 'wazuh-indexer',
   $indexer_filegroup = 'wazuh-indexer',
 
+  $create_ssl_certs = true,
+
   $indexer_path_data = '/var/lib/wazuh-indexer',
   $indexer_path_logs = '/var/log/wazuh-indexer',
   $indexer_path_certs = '/etc/wazuh-indexer/certs',
@@ -57,24 +59,24 @@ class wazuh::indexer (
     group  => $indexer_filegroup,
     mode   => '0500',
   }
-
-  [
-    'indexer.pem',
-    'indexer-key.pem',
-    'root-ca.pem',
-    'admin.pem',
-    'admin-key.pem',
-  ].each |String $certfile| {
-    file { "${indexer_path_certs}/${certfile}":
-      ensure  => file,
-      owner   => $indexer_fileuser,
-      group   => $indexer_filegroup,
-      mode    => '0400',
-      replace => false,  # only copy content when file not exist
-      source  => "/tmp/wazuh-certificates/${certfile}",
+  if $create_ssl_certs {
+    [
+      'indexer.pem',
+      'indexer-key.pem',
+      'root-ca.pem',
+      'admin.pem',
+      'admin-key.pem',
+    ].each |String $certfile| {
+      file { "${indexer_path_certs}/${certfile}":
+        ensure  => file,
+        owner   => $indexer_fileuser,
+        group   => $indexer_filegroup,
+        mode    => '0400',
+        replace => false,  # Only copy content when file does not exist
+        source  => "/tmp/wazuh-certificates/${certfile}";
+      }
     }
   }
-
   file { 'configuration file':
     path    => '/etc/wazuh-indexer/opensearch.yml',
     content => template('wazuh/wazuh_indexer_yml.erb'),
