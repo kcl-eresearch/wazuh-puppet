@@ -19,7 +19,7 @@ class wazuh::agent (
   # Authd registration options
   $manage_client_keys                = $wazuh::params_agent::manage_client_keys,
   $agent_name                        = $wazuh::params_agent::agent_name,
-  $agent_group                       = $wazuh::params_agent::agent_group,
+  $agent_groups                      = $wazuh::params_agent::agent_groups,
   $agent_address                     = $wazuh::params_agent::agent_address,
   $wazuh_agent_cert                  = $wazuh::params_agent::wazuh_agent_cert,
   $wazuh_agent_key                   = $wazuh::params_agent::wazuh_agent_key,
@@ -497,9 +497,8 @@ class wazuh::agent (
       $agent_auth_option_name = ''
     }
 
-    if $agent_group {
-      validate_legacy(String, 'validate_string', $agent_group)
-      $agent_auth_option_group = "-G \"${agent_group}\""
+    if $agent_groups {
+      $agent_auth_option_group = "-G \"${join($agent_groups,',')}\""
     } else {
       $agent_auth_option_group = ''
     }

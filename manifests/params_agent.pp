@@ -7,7 +7,7 @@ class wazuh::params_agent {
   $agent_msi_download_location = 'https://packages.wazuh.com/4.x/windows'
 
   $agent_name = undef
-  $agent_group = undef
+  $agent_groups = undef
   $agent_address = undef
 
   # Enable/Disable agent registration
