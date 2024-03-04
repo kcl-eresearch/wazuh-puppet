@@ -3,6 +3,8 @@
 class wazuh::indexer (
   # opensearch.yml configuration
   $indexer_network_host = '0.0.0.0',
+  $indexer_network_bind_host = $wazuh::indexer::indexer_network_host,
+  $indexer_network_publish_host = $wazuh::indexer::indexer_network_host,
   $indexer_cluster_name = 'wazuh-cluster',
   $indexer_node_name = 'node-1',
   $indexer_node_max_local_storage_nodes = '1',
